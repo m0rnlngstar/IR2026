@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecteur Déclaration Fiscale DGFiP</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f0f0e; --surface:#181817; --surface2:#212120; --border:#2c2c29;
+  --accent:#e8d5a3; --accent2:#c4a882;
+  --green:#7ec98a; --red:#e07878; --blue:#7eafc9; --purple:#a78ec9; --orange:#d4956a;
+  --text:#e8e6e0; --muted:#88887f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh}
+
+#dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:24px;padding:40px}
+.logo-title{font-family:'DM Serif Display',serif;font-size:clamp(2rem,5vw,3.2rem);color:var(--accent);letter-spacing:-.02em;text-align:center}
+.logo-sub{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;text-align:center}
+.drop-area{width:100%;max-width:500px;border:1.5px dashed var(--border);border-radius:16px;padding:56px 40px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.drop-area:hover,.drop-area.drag-over{border-color:var(--accent);background:rgba(232,213,163,.04)}
+.drop-icon{font-size:2.8rem;margin-bottom:14px;display:block}
+.drop-area h2{font-size:1rem;font-weight:700;margin-bottom:8px}
+.drop-area p{font-size:.8rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:20px}
+.btn-upload{background:var(--accent);color:var(--bg);border:none;border-radius:6px;padding:10px 24px;font-family:'Syne',sans-serif;font-size:.83rem;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:background .2s}
+.btn-upload:hover{background:var(--accent2)}
+#fileInput{display:none}
+.drop-hint{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-align:center}
+.error-msg{background:rgba(224,120,120,.1);border:1px solid rgba(224,120,120,.35);border-radius:8px;padding:14px 18px;color:var(--red);font-family:'DM Mono',monospace;font-size:.78rem;display:none;max-width:500px;text-align:center}
+
+#dashboard{display:none}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:12px;flex-wrap:wrap}
+.topbar-title{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--accent);white-space:nowrap}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{font-family:'DM Mono',monospace;font-size:.68rem;padding:4px 10px;border-radius:4px;letter-spacing:.07em;white-space:nowrap}
+.badge-year{background:rgba(232,213,163,.14);color:var(--accent)}
+.badge-situ{background:rgba(126,201,138,.14);color:var(--green)}
+.badge-warn{background:rgba(224,120,120,.14);color:var(--red)}
+.btn-reset{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:6px 14px;font-family:'Syne',sans-serif;font-size:.76rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-reset:hover{border-color:var(--accent);color:var(--accent)}
+
+.content{max-width:1200px;margin:0 auto;padding:28px 20px;display:flex;flex-direction:column;gap:24px}
+.section-title{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.id-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px 28px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+@media(max-width:680px){.id-card{grid-template-columns:1fr}}
+.id-section-label{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.id-name{font-family:'DM Serif Display',serif;font-size:1.7rem;color:var(--accent);line-height:1.1}
+.id-field{font-size:.82rem;color:var(--text);margin-top:6px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.id-field .lbl{color:var(--muted);font-family:'DM Mono',monospace;font-size:.68rem;min-width:72px;flex-shrink:0}
+.spi-display{font-family:'DM Mono',monospace;font-size:.82rem;color:var(--blue);letter-spacing:.08em;margin-top:8px}
+.iban-display{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--text);background:var(--surface2);padding:8px 10px;border-radius:6px;letter-spacing:.04em;margin-top:8px;word-break:break-all}
+
+.pas-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px}
+.pas-item-label{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-bottom:6px}
+.pas-item-value{font-family:'DM Serif Display',serif;font-size:1.45rem;color:var(--green)}
+.pas-item-code{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);margin-top:3px}
+
+.rev-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.rev-section-header{padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .15s;border-bottom:1px solid transparent}
+.rev-section.open .rev-section-header{border-bottom-color:var(--border)}
+.rev-section-header:hover{background:rgba(255,255,255,.025)}
+.rev-section-name{font-size:.88rem;font-weight:700;color:var(--text)}
+.rev-section-count{font-family:'DM Mono',monospace;font-size:.66rem;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:4px}
+.rev-section-rows{display:none}
+.rev-section.open .rev-section-rows{display:block}
+.rev-row{padding:10px 18px;display:grid;grid-template-columns:80px 1fr auto;gap:12px;align-items:center;border-bottom:1px solid rgba(44,44,41,.5);font-size:.82rem}
+.rev-row:last-child{border-bottom:none}
+.rev-code{font-family:'DM Mono',monospace;font-size:.68rem;background:rgba(126,175,201,.1);color:var(--blue);padding:3px 7px;border-radius:4px;text-align:center}
+.rev-label{color:var(--muted);line-height:1.35}
+.rev-val{font-family:'DM Mono',monospace;text-align:right;white-space:nowrap;font-weight:500}
+.rv-green{color:var(--green)} .rv-blue{color:var(--blue)} .rv-red{color:var(--red)} .rv-purple{color:var(--purple)} .rv-orange{color:var(--orange)}
+
+.bulletins-grid{display:flex;flex-direction:column;gap:10px}
+.source-group{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.source-header{padding:13px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid transparent;cursor:pointer;user-select:none;transition:background .15s;gap:10px}
+.source-group.open .source-header{border-bottom-color:var(--border)}
+.source-header:hover{background:rgba(255,255,255,.025)}
+.source-name{font-size:.88rem;font-weight:700}
+.source-siret{font-family:'DM Mono',monospace;font-size:.64rem;color:var(--muted);margin-top:2px}
+.source-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.src-badge{font-family:'DM Mono',monospace;font-size:.62rem;padding:3px 8px;border-radius:4px;letter-spacing:.05em}
+.src-salaire{background:rgba(126,201,138,.14);color:var(--green)}
+.src-banque{background:rgba(126,175,201,.14);color:var(--blue)}
+.src-cesu{background:rgba(167,142,201,.14);color:var(--purple)}
+.source-total{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--accent)}
+.src-chevron{color:var(--muted);font-size:.75rem;transition:transform .2s;margin-left:4px}
+.source-group.open .src-chevron{transform:rotate(180deg)}
+.source-rows{display:none}
+.source-group.open .source-rows{display:block}
+.source-row{padding:9px 18px;display:grid;grid-template-columns:74px 1fr auto;gap:10px;align-items:start;border-bottom:1px solid rgba(44,44,41,.6);font-size:.8rem}
+.source-row:last-child{border-bottom:none}
+.row-code{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--blue);background:rgba(126,175,201,.1);padding:3px 6px;border-radius:4px;text-align:center;margin-top:1px}
+.row-label{color:var(--muted);font-size:.77rem;line-height:1.4}
+.row-label em{font-style:normal;color:var(--purple);font-size:.7rem}
+.row-amount{font-family:'DM Mono',monospace;color:var(--text);text-align:right;white-space:nowrap;line-height:1.6}
+.row-pas{color:var(--green);font-size:.65rem;display:block}
+
+.cot-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px}
+.cot-total-row{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.cot-total-label{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.cot-total-val{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--red)}
+.cot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.cot-item{background:var(--surface2);border-radius:8px;padding:14px;text-align:center}
+.cot-item-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);margin-bottom:7px}
+.cot-item-val{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--purple)}
+
+.unknown-grid{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.unknown-row{padding:9px 18px;display:grid;grid-template-columns:80px 1fr auto;gap:12px;border-bottom:1px solid rgba(44,44,41,.4);font-size:.8rem}
+.unknown-row:last-child{border-bottom:none}
+.unk-code{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--orange);background:rgba(212,149,106,.1);padding:3px 7px;border-radius:4px;text-align:center}
+.unk-label{color:var(--muted);font-style:italic;font-size:.75rem}
+.unk-val{font-family:'DM Mono',monospace;color:var(--text);text-align:right;white-space:nowrap}
+
+.alert-box{background:rgba(224,120,120,.07);border:1px solid rgba(224,120,120,.28);border-radius:10px;padding:14px 18px;display:flex;gap:10px;align-items:flex-start;font-size:.8rem;color:var(--text);line-height:1.5}
+.info-box{background:rgba(126,175,201,.07);border:1px solid rgba(126,175,201,.25);border-radius:10px;padding:14px 18px;display:flex;gap:10px;align-items:flex-start;font-size:.8rem;color:var(--text);line-height:1.5}
+
+.raw-toggle{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:7px 14px;font-family:'DM Mono',monospace;font-size:.72rem;cursor:pointer;transition:all .2s;display:block;margin-bottom:10px}
+.raw-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.raw-pre{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);overflow-x:auto;white-space:pre-wrap;word-break:break-word;display:none;line-height:1.6;max-height:400px;overflow-y:auto}
+</style>
+</head>
+<body>
+
+<div id="dropzone">
+  <div>
+    <div class="logo-title">Lecteur Déclaration</div>
+    <div class="logo-sub">Données préremplies DGFiP · 100% local</div>
+  </div>
+  <div class="drop-area" id="dropArea">
+    <span class="drop-icon">📂</span>
+    <h2>Déposer le fichier JSON</h2>
+    <p>Fichier « Déclaration par un tiers »<br>téléchargé depuis impots.gouv.fr</p>
+    <button class="btn-upload" onclick="document.getElementById('fileInput').click()">Choisir un fichier</button>
+    <input type="file" id="fileInput" accept=".json,application/json">
+  </div>
+  <p class="drop-hint">⚡ Aucune donnée ne quitte votre navigateur</p>
+  <div class="error-msg" id="errorMsg"></div>
+</div>
+
+<div id="dashboard">
+  <div class="topbar">
+    <div class="topbar-title">Déclaration Fiscale</div>
+    <div class="topbar-right">
+      <span class="badge badge-year" id="badgeYear">—</span>
+      <span class="badge badge-situ" id="badgeSitu">—</span>
+      <span class="badge badge-warn" id="badgeWarn" style="display:none">—</span>
+      <button class="btn-reset" onclick="resetDashboard()">← Nouveau fichier</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="id-card" id="idCard"></div>
+    <div id="alertsTop"></div>
+    <div id="secPAS"></div>
+    <div id="secRevGroup"></div>
+    <div id="secCot"></div>
+    <div id="secTiers"></div>
+    <div id="secUnknown"></div>
+    <div>
+      <div class="section-title">🔍 JSON brut</div>
+      <button class="raw-toggle" onclick="toggleRaw()">Afficher / Masquer le JSON source</button>
+      <pre class="raw-pre" id="rawPre"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// DICTIONNAIRE EXHAUSTIF 2042 + 2042C + RICI
+// Format : 'CODE': [libellé, déclarant/foyer, section, estCase(1=oui)]
+// ═══════════════════════════════════════════
+const CODES = {
+  // TRAITEMENTS & SALAIRES
+  '1AJ':['Salaires nets imposables','D1','salaires',0],'1BJ':['Salaires nets imposables','D2','salaires',0],
+  '1CJ':['Salaires nets imposables','PC1','salaires',0],'1DJ':['Salaires nets imposables','PC2','salaires',0],
+  '1AA':['Revenus salariés particuliers employeurs','D1','salaires',0],'1BA':['Revenus salariés particuliers employeurs','D2','salaires',0],
+  '1CA':['Revenus salariés particuliers employeurs','PC1','salaires',0],'1DA':['Revenus salariés particuliers employeurs','PC2','salaires',0],
+  '1GA':['Abattement assist. maternels/journalistes','D1','salaires',0],'1HA':['Abattement assist. maternels/journalistes','D2','salaires',0],
+  '1IA':['Abattement assist. maternels/journalistes','PC1','salaires',0],'1JA':['Abattement assist. maternels/journalistes','PC2','salaires',0],
+  '1GH':['Heures supplémentaires / RTT exonérées','D1','salaires',0],'1HH':['Heures supplémentaires / RTT exonérées','D2','salaires',0],
+  '1IH':['Heures supplémentaires / RTT exonérées','PC1','salaires',0],'1JH':['Heures supplémentaires / RTT exonérées','PC2','salaires',0],
+  '1PB':['Pourboires exonérés','D1','salaires',0],'1PC':['Pourboires exonérés','D2','salaires',0],
+  '1PD':['Pourboires exonérés','PC1','salaires',0],'1PE':['Pourboires exonérés','PC2','salaires',0],
+  '1AD':['Prime de partage de valeur exonérée','D1','salaires',0],'1BD':['Prime de partage de valeur exonérée','D2','salaires',0],
+  '1CD':['Prime de partage de valeur exonérée','PC1','salaires',0],'1DD':['Prime de partage de valeur exonérée','PC2','salaires',0],
+  '1AV':['Majoration seuil exonération','D1','salaires',1],'1BV':['Majoration seuil exonération','D2','salaires',1],
+  '1GB':['Revenus associés/gérants art. 62 CGI','D1','salaires',0],'1HB':['Revenus associés/gérants art. 62 CGI','D2','salaires',0],
+  '1IB':['Revenus associés/gérants art. 62 CGI','PC1','salaires',0],'1JB':['Revenus associés/gérants art. 62 CGI','PC2','salaires',0],
+  '1GF':['Droits d\'auteur / fonctionnaires chercheurs','D1','salaires',0],'1HF':['Droits d\'auteur / fonctionnaires chercheurs','D2','salaires',0],
+  '1AP':['Allocations chômage / préretraite','D1','salaires',0],'1BP':['Allocations chômage / préretraite','D2','salaires',0],
+  '1CP':['Allocations chômage / préretraite','PC1','salaires',0],'1DP':['Allocations chômage / préretraite','PC2','salaires',0],
+  '1AF':['Salaires source étrangère (crédit impôt = FR)','D1','salaires',0],'1BF':['Salaires source étrangère (crédit impôt = FR)','D2','salaires',0],
+  '1AG':['Autres salaires imposables source étrangère','D1','salaires',0],'1BG':['Autres salaires imposables source étrangère','D2','salaires',0],
+  '1AK':['Frais réels','D1','salaires',0],'1BK':['Frais réels','D2','salaires',0],
+  '1CK':['Frais réels','PC1','salaires',0],'1DK':['Frais réels','PC2','salaires',0],
+  // PENSIONS & RENTES
+  '1AS':['Pensions, retraites et rentes','D1','pensions',0],'1BS':['Pensions, retraites et rentes','D2','pensions',0],
+  '1CS':['Pensions, retraites et rentes','PC1','pensions',0],'1DS':['Pensions, retraites et rentes','PC2','pensions',0],
+  '1AT':['Pensions de retraite en capital taxables 7,5%','D1','pensions',0],'1BT':['Pensions de retraite en capital taxables 7,5%','D2','pensions',0],
+  '1AI':['Pensions en capital PER','D1','pensions',0],'1BI':['Pensions en capital PER','D2','pensions',0],
+  '1AZ':['Pensions d\'invalidité','D1','pensions',0],'1BZ':['Pensions d\'invalidité','D2','pensions',0],
+  '1CZ':['Pensions d\'invalidité','PC1','pensions',0],'1DZ':['Pensions d\'invalidité','PC2','pensions',0],
+  '1AO':['Pensions alimentaires perçues','D1','pensions',0],'1BO':['Pensions alimentaires perçues','D2','pensions',0],
+  '1CO':['Pensions alimentaires perçues','PC1','pensions',0],'1DO':['Pensions alimentaires perçues','PC2','pensions',0],
+  '1AL':['Pensions source étrangère (crédit impôt = FR)','D1','pensions',0],'1BL':['Pensions source étrangère (crédit impôt = FR)','D2','pensions',0],
+  '1AM':['Autres pensions imposables source étrangère','D1','pensions',0],'1BM':['Autres pensions imposables source étrangère','D2','pensions',0],
+  '1AW':['Rentes viagères (< 50 ans)','Foyer','pensions',0],'1BW':['Rentes viagères (50–59 ans)','Foyer','pensions',0],
+  '1CW':['Rentes viagères (60–69 ans)','Foyer','pensions',0],'1DW':['Rentes viagères (≥ 70 ans)','Foyer','pensions',0],
+  '1AR':['Rentes viagères source étrangère (crédit = FR) < 50 ans','Foyer','pensions',0],
+  '1BR':['Rentes viagères source étrangère 50-59 ans','Foyer','pensions',0],
+  // CAPITAUX MOBILIERS
+  '2DH':['Assurance-vie ≥ 8 ans, versements avant 27.9.2017 – prél. libér.','Foyer','rcm',0],
+  '2CH':['Assurance-vie ≥ 8 ans, versements avant 27.9.2017 – autres','Foyer','rcm',0],
+  '2VV':['Assurance-vie ≥ 8 ans imposables à 7,5%','Foyer','rcm',0],
+  '2WW':['Assurance-vie ≥ 8 ans imposables à 12,8%','Foyer','rcm',0],
+  '2XX':['Assurance-vie < 8 ans, avant 27.9.2017 – prél. libér.','Foyer','rcm',0],
+  '2YY':['Assurance-vie < 8 ans, avant 27.9.2017 – autres','Foyer','rcm',0],
+  '2ZZ':['Assurance-vie < 8 ans, à compter 27.9.2017','Foyer','rcm',0],
+  '2DC':['Revenus d\'actions et parts (abatt. 40% si option barème)','Foyer','rcm',0],
+  '2FU':['Dividendes titres non cotés PEA / PEA-PME','Foyer','rcm',0],
+  '2TS':['Autres revenus distribués et assimilés','Foyer','rcm',0],
+  '2TR':['Intérêts et produits de placement à revenu fixe','Foyer','rcm',0],
+  '2TT':['Intérêts prêts participatifs / minibons','Foyer','rcm',0],
+  '2TQ':['Intérêts obligations remboursables en actions PEA-PME','Foyer','rcm',0],
+  '2TZ':['Produits PER – sortie en capital','Foyer','rcm',0],
+  '2CG':['Revenus soumis prél. sociaux sans CSG déductible','Foyer','rcm',0],
+  '2BH':['Revenus soumis prél. sociaux avec CSG déductible (barème)','Foyer','rcm',0],
+  '2DF':['Autres revenus soumis prél. sociaux avec CSG déductible','Foyer','rcm',0],
+  '2DG':['Revenus soumis seul prél. solidarité 7,5%','Foyer','rcm',0],
+  '2DI':['Revenus soumis seul prél. solidarité → CSG + CRDS','Foyer','rcm',0],
+  '2CA':['Frais et charges déductibles (option barème)','Foyer','rcm',0],
+  '2AB':['Crédits d\'impôt sur valeurs étrangères','Foyer','rcm',0],
+  '2CK':['Prélèvement forfaitaire non libératoire déjà versé','Foyer','rcm',0],
+  '2EE':['Autres revenus soumis à prélèvement libératoire','Foyer','rcm',0],
+  '2OP':['Option imposition barème RCM + PV mobilières','Foyer','rcm',1],
+  // PLUS-VALUES
+  '3VG':['Plus-values nettes imposables','Foyer','plusval',0],
+  '3VH':['Moins-values reportables','Foyer','plusval',0],
+  '3VI':['Plus-values taux 19% (non-résidents)','Foyer','plusval',0],
+  '3VM':['Plus-values – abattement fixe entrepreneurs investisseurs','Foyer','plusval',0],
+  '3VA':['Abattement net pour durée de détention','Foyer','plusval',0],
+  '3VB':['Abattement net renforcé','Foyer','plusval',0],
+  '3VC':['Plus-values 2074-I','Foyer','plusval',0],
+  '3VD':['Moins-values 2074-I','Foyer','plusval',0],
+  '3VE':['Gains nets imposables (options / BSPCE)','Foyer','plusval',0],
+  '3VF':['Gains nets imposables (autres)','Foyer','plusval',0],
+  '3VZ':['Moins-values reportables antérieures','Foyer','plusval',0],
+  // REVENUS FONCIERS
+  '4BE':['Recettes brutes micro-foncier (≤ 15 000 €)','Foyer','foncier',0],
+  '4BK':['Recettes micro-foncier source étrangère','Foyer','foncier',0],
+  '4BA':['Revenus fonciers imposables (régime réel)','Foyer','foncier',0],
+  '4BL':['Revenus fonciers source étrangère','Foyer','foncier',0],
+  '4BB':['Déficit imputable sur revenus fonciers','Foyer','foncier',0],
+  '4BC':['Déficit imputable sur revenu global','Foyer','foncier',0],
+  '4BD':['Déficits antérieurs non imputés','Foyer','foncier',0],
+  '4BN':['Plus de revenus fonciers en cours d\'année','Foyer','foncier',1],
+  '4BZ':['Déclaration 2044 spéciale jointe','Foyer','foncier',1],
+  // REVENUS PRO (2042C PRO)
+  '5QA':['BIC professionnels imposables','D1','pro',0],'5RA':['BIC professionnels imposables','D2','pro',0],
+  '5QC':['BIC non professionnels imposables','D1','pro',0],'5RC':['BIC non professionnels imposables','D2','pro',0],
+  '5QD':['Déficits BIC professionnels','D1','pro',0],'5RD':['Déficits BIC professionnels','D2','pro',0],
+  '5QL':['Micro-BIC recettes ventes','D1','pro',0],'5RL':['Micro-BIC recettes ventes','D2','pro',0],
+  '5QM':['Micro-BIC recettes prestations de services','D1','pro',0],'5RM':['Micro-BIC recettes prestations','D2','pro',0],
+  '5HY':['BNC professionnels imposables','D1','pro',0],'5IY':['BNC professionnels imposables','D2','pro',0],
+  '5HG':['BNC non professionnels imposables','D1','pro',0],'5IG':['BNC non professionnels imposables','D2','pro',0],
+  '5HQ':['Micro-BNC recettes','D1','pro',0],'5IQ':['Micro-BNC recettes','D2','pro',0],
+  '5HP':['Déficits BNC professionnels','D1','pro',0],'5IP':['Déficits BNC professionnels','D2','pro',0],
+  '5KA':['BA professionnels imposables','D1','pro',0],'5LA':['BA professionnels imposables','D2','pro',0],
+  '5KB':['Micro-BA recettes','D1','pro',0],'5LB':['Micro-BA recettes','D2','pro',0],
+  '5KD':['Déficits BA professionnels','D1','pro',0],'5LD':['Déficits BA professionnels','D2','pro',0],
+  // CHARGES DEDUCTIBLES
+  '6DE':['CSG déductible sur revenus du patrimoine','Foyer','charges',0],
+  '6EL':['Pensions alimentaires enfants majeurs (1er)','Foyer','charges',0],
+  '6EM':['Pensions alimentaires enfants majeurs (2e)','Foyer','charges',0],
+  '6GU':['Autres pensions alimentaires versées (mineurs, ascendants…)','Foyer','charges',0],
+  '6NS':['Cotisations PER déductibles revenu global','D1','charges',0],'6NT':['Cotisations PER déductibles','D2','charges',0],'6NU':['Cotisations PER déductibles','PC','charges',0],
+  '6RS':['Cotisations PERP / PRÉFON / COREM / CGOS','D1','charges',0],'6RT':['Cotisations PERP…','D2','charges',0],'6RU':['Cotisations PERP…','PC','charges',0],
+  '6PS':['Plafond déduction épargne retraite / cotisations sociales obligatoires','D1','charges',0],
+  '6PT':['Plafond déduction épargne retraite','D2','charges',0],'6PU':['Plafond déduction épargne retraite','PC','charges',0],
+  '6OS':['Cotisations PER déduites BIC/BNC/BA','D1','charges',0],'6OT':['Cotisations PER déduites BIC/BNC/BA','D2','charges',0],
+  '6QS':['Autres cotisations déduites BIC/BNC/BA/salaires','D1','charges',0],'6QT':['Autres cotisations déduites','D2','charges',0],
+  '6QR':['Bénéficier du plafond du conjoint','Foyer','charges',1],
+  '6QW':['Nouvellement domicilié en France en N','Foyer','charges',1],
+  // RÉDUCTIONS & CRÉDITS (2042 + 2042RICI)
+  '7UD':['Dons organismes aide aux personnes (max 1 000 €)','Foyer','rici',0],
+  '7UJ':['Dons sauvegarde patrimoine religieux (max 1 000 €)','Foyer','rici',0],
+  '7UO':['Dons aide victimes cyclone Chido à Mayotte (max 2 000 €)','Foyer','rici',0],
+  '7UF':['Dons autres organismes d\'intérêt général / partis politiques','Foyer','rici',0],
+  '7DB':['Dépenses emploi à domicile','Foyer','rici',0],
+  '7DR':['Aides perçues emploi domicile (APA, PCH, CESU préfinancé)','Foyer','rici',0],
+  '7DL':['Nb d\'ascendants APA > 65 ans avec dépenses','Foyer','rici',0],
+  '7DQ':['1re embauche directe salarié domicile en N','Foyer','rici',1],
+  '7DG':['Carte invalidité / CMI invalidité','Foyer','rici',1],
+  '7EA':['Frais scolarité collège (nb enfants)','Foyer','rici',0],'7EB':['Frais scolarité collège résid. alternée','Foyer','rici',0],
+  '7EC':['Frais scolarité lycée (nb enfants)','Foyer','rici',0],'7ED':['Frais scolarité lycée résid. alternée','Foyer','rici',0],
+  '7EF':['Frais scolarité supérieur (nb enfants)','Foyer','rici',0],'7EG':['Frais scolarité supérieur résid. alternée','Foyer','rici',0],
+  '7GA':['Frais garde enfants < 6 ans – 1er','Foyer','rici',0],'7GB':['Frais garde enfants < 6 ans – 2e','Foyer','rici',0],
+  '7GC':['Frais garde enfants < 6 ans – 3e','Foyer','rici',0],'7GD':['Frais garde enfants < 6 ans – 4e','Foyer','rici',0],
+  '7GE':['Frais garde résid. alternée – 1er','Foyer','rici',0],'7GF':['Frais garde résid. alternée – 2e','Foyer','rici',0],
+  '7GG':['Frais garde résid. alternée – 3e','Foyer','rici',0],'7GM':['Frais garde résid. alternée – 4e','Foyer','rici',0],
+  '7GZ':['Primes contrats rente survie / épargne handicap','Foyer','rici',0],
+  '7CD':['Hébergement dépendant EHPAD','D1','rici',0],'7CE':['Hébergement dépendant EHPAD','D2','rici',0],
+  '7WO':['Investissement Pinel / Duflot','Foyer','rici',0],'7WP':['Pinel report N-1','Foyer','rici',0],
+  '7WQ':['Pinel report N-2','Foyer','rici',0],'7WR':['Pinel report N-3','Foyer','rici',0],
+  '7WS':['Pinel report N-4','Foyer','rici',0],'7WH':['Pinel report N-5','Foyer','rici',0],
+  '7HJ':['Denormandie','Foyer','rici',0],'7HK':['Denormandie report','Foyer','rici',0],
+  '7HM':['Malraux','Foyer','rici',0],'7HL':['Loc\'Avantages','Foyer','rici',0],
+  '7QA':['Cotisations syndicales','D1','rici',0],'7QB':['Cotisations syndicales','D2','rici',0],
+  // PAS & DIVERS
+  '8HV':['Retenue source salaires/pensions – PAS annuel','D1','pas',0],
+  '8IV':['Retenue source salaires/pensions','D2','pas',0],
+  '8JV':['Retenue source salaires/pensions','PC1','pas',0],
+  '8KV':['Retenue source salaires/pensions','PC2','pas',0],
+  '8HW':['Acomptes impôt sur le revenu','D1','pas',0],
+  '8IW':['Acomptes impôt sur le revenu','D2','pas',0],
+  '8HX':['Acomptes prélèvements sociaux','D1','pas',0],
+  '8IX':['Acomptes prélèvements sociaux','D2','pas',0],
+  '8HY':['Remboursement trop-prélevé IR','D1','pas',0],
+  '8IY':['Remboursement trop-prélevé IR','D2','pas',0],
+  '8HZ':['Remboursement trop-prélevé prél. sociaux','D1','pas',0],
+  '8IZ':['Remboursement trop-prélevé prél. sociaux','D2','pas',0],
+  '8EA':['Avance 60% réductions/crédits d\'impôt versée en début d\'année','Foyer','pas',0],
+  '8TK':['Revenus source étrangère – crédit impôt = impôt FR','Foyer','pas',0],
+  '8TA':['Non-résidents – retenue source France','Foyer','pas',0],
+  '8UT':['Plus-values en report d\'imposition non expiré','Foyer','pas',0],
+  '8VM':['Impôt payé à l\'étranger sur revenus salariés D1','D1','pas',0],
+  '8UM':['Impôt payé à l\'étranger sur revenus salariés D2','D2','pas',0],
+  '8FV':['Revenus exonérés non retenus pour taux effectif (conv. int.)','Foyer','pas',1],
+  '8TT':['Contrats capitalisation / assurance-vie étrangers','Foyer','pas',1],
+  '8UU':['Comptes ouverts / détenus / clos à l\'étranger','Foyer','pas',1],
+  // CODES SPÉCIAUX JSON DGFiP (hors cases papier)
+  'APS':['Cotisations sociales T1','Foyer','cot',0],
+  'BPS':['Cotisations sociales T2','Foyer','cot',0],
+  'CPS':['Cotisations sociales T3','Foyer','cot',0],
+  'DPS':['Cotisations sociales T4','Foyer','cot',0],
+  'CESU_Dom':['Montant CESU emploi domicile','Foyer','special',0],
+  'Avance_RICI_Foyer':['Avance crédit d\'impôt emploi domicile (RICI)','Foyer','special',0],
+  'Avance_RICI_Dec1':['Avance RICI D1','D1','special',0],
+  'Avance_RICI_Dec2':['Avance RICI D2','D2','special',0],
+};
+
+const CODE_COLOR_MAP = {
+  salaires:'rv-green', pensions:'rv-green', rcm:'rv-blue', plusval:'rv-blue',
+  foncier:'rv-orange', pro:'rv-orange', charges:'rv-red', rici:'rv-purple',
+  pas:'rv-green', cot:'rv-red', special:'rv-purple',
+};
+
+const SITU_FAM = { C:'Célibataire', M:'Marié(e)', P:'Pacsé(e)', D:'Divorcé(e)', V:'Veuf/Veuve', O:'Pacsé(e)' };
+
+const SECTIONS_ORDER = [
+  {key:'salaires', label:'💼 Traitements & salaires'},
+  {key:'pensions', label:'🏖️ Pensions, retraites & rentes'},
+  {key:'rcm',      label:'📈 Revenus de capitaux mobiliers'},
+  {key:'plusval',  label:'🔀 Plus-values mobilières'},
+  {key:'foncier',  label:'🏠 Revenus fonciers'},
+  {key:'pro',      label:'🏭 Revenus professionnels (BIC / BNC / BA)'},
+  {key:'charges',  label:'➖ Charges déductibles'},
+  {key:'rici',     label:'🎁 Réductions & crédits d\'impôt'},
+  {key:'special',  label:'✨ Données spéciales JSON DGFiP'},
+];
+
+const CODES_PAS = new Set(['8HV','8IV','8JV','8KV','8HW','8IW','8HX','8IX','8HY','8IY','8HZ','8IZ','8EA','8TK','8TA','8UT','8VM','8UM','8FV','8TT','8UU']);
+const CODES_COT = new Set(['APS','BPS','CPS','DPS']);
+
+// ── UTILS ──
+function fmt(n){
+  if(n===undefined||n===null||n==='')return'—';
+  const v=parseInt(n,10);
+  if(isNaN(v))return String(n);
+  return v.toLocaleString('fr-FR')+' €';
+}
+function parseDOB(d){
+  if(!d||d.length<8)return d||'—';
+  return d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4);
+}
+function esc(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function srcType(r){
+  const t=(r||'').toUpperCase();
+  if(/URSSAF|CESU|SAP SERVICE/.test(t))return 'cesu';
+  if(/SOCIETE GENERALE|CREDIT (AGRICOLE|INDUSTRIEL|MUTUEL|LYONNAIS)|^CA |CIC|LCL|BNP|BOURSO|BRED|HSBC|ING |CAISSE|NORMANDIE|FIDUCIA|BANQUE|BRED/.test(t))return 'banque';
+  return 'salaire';
+}
+function srcLabel(t){return{salaire:'Employeur',banque:'Établissement financier',cesu:'URSSAF / CESU'}[t]||'Autre'}
+
+// ── DROP ──
+const dropArea=document.getElementById('dropArea');
+const fileInput=document.getElementById('fileInput');
+dropArea.addEventListener('dragover',e=>{e.preventDefault();dropArea.classList.add('drag-over')});
+dropArea.addEventListener('dragleave',()=>dropArea.classList.remove('drag-over'));
+dropArea.addEventListener('drop',e=>{e.preventDefault();dropArea.classList.remove('drag-over');if(e.dataTransfer.files[0])readFile(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',e=>{if(e.target.files[0])readFile(e.target.files[0])});
+function readFile(f){const r=new FileReader();r.onload=e=>{try{renderDashboard(JSON.parse(e.target.result))}catch(err){showError('JSON invalide : '+err.message)}};r.readAsText(f,'utf-8')}
+function showError(m){const el=document.getElementById('errorMsg');el.textContent='⚠ '+m;el.style.display='block'}
+function resetDashboard(){document.getElementById('dashboard').style.display='none';document.getElementById('dropzone').style.display='flex';fileInput.value='';document.getElementById('errorMsg').style.display='none'}
+function toggleRaw(){const el=document.getElementById('rawPre');el.style.display=el.style.display==='none'?'block':'none'}
+
+// ── RENDER ──
+function renderDashboard(d){
+  document.getElementById('dropzone').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+
+  // Construire revMap exhaustif
+  const revMap={};
+  (d.codes_revenus||[]).forEach(r=>revMap[r.code]=r.valeur);
+  if(d.sanction?.acomptesDec1)d.sanction.acomptesDec1.forEach(a=>{if(!revMap[a.code])revMap[a.code]=a.valeur});
+
+  // Badges
+  const annee=parseInt(d.annRev||0);
+  document.getElementById('badgeYear').textContent='Revenus '+(annee-1||'—');
+  document.getElementById('badgeSitu').textContent=SITU_FAM[d.sitFam]||d.sitFam||'—';
+
+  // ── IDENTITÉ ──
+  const nom=[d.nmUsaDec1||d.nmNaiDec1,d.prnmDec1].filter(Boolean).join(' ');
+  document.getElementById('idCard').innerHTML=`
+    <div>
+      <div class="id-section-label">Contribuable</div>
+      <div class="id-name">${esc(nom)||'—'}</div>
+      <div class="id-field"><span class="lbl">Naissance</span><span>${parseDOB(d.dateNaisDec1)} — ${esc(d.lieuNaisDec1||'—')}</span></div>
+      <div class="id-field"><span class="lbl">Situation</span><span>${SITU_FAM[d.sitFam]||d.sitFam||'—'}</span></div>
+      <div class="spi-display">N° fiscal : ${esc(d.spiDec1||'—')}</div>
+    </div>
+    <div>
+      <div class="id-section-label">Coordonnées</div>
+      ${d.aftDetail?`<div class="id-field"><span class="lbl">Adresse</span><span>${esc((d.aftDetail.numero||'')+' '+(d.aftDetail.voie||''))}, ${esc((d.aftDetail.codePostal||'')+' '+(d.aftDetail.commune||''))}</span></div>`:''}
+      ${d.mailDec1?`<div class="id-field"><span class="lbl">Email</span><span>${esc(d.mailDec1)}</span></div>`:''}
+      ${d.telDec1?`<div class="id-field"><span class="lbl">Tél.</span><span>${esc(d.telDec1)}</span></div>`:''}
+      ${d.aftCodee?`<div class="id-field"><span class="lbl">Code AFT</span><span style="font-family:'DM Mono',monospace;font-size:.72rem">${esc(d.aftCodee)}</span></div>`:''}
+    </div>
+    <div>
+      <div class="id-section-label">Domiciliation bancaire</div>
+      ${d.rib?`<div class="iban-display">${esc(d.rib.ribIban||'—')}</div><div class="id-field" style="margin-top:8px"><span class="lbl">BIC</span><span style="font-family:'DM Mono',monospace;font-size:.78rem">${esc(d.rib.ribBic||'—')}</span></div>`:'<div style="color:var(--muted);font-size:.8rem">Non renseigné</div>'}
+    </div>`;
+
+  // ── PAS ──
+  const pasPresents=Array.from(CODES_PAS).filter(c=>revMap[c]&&parseInt(revMap[c],10)!==0);
+  if(pasPresents.length){
+    document.getElementById('secPAS').innerHTML=`
+      <div class="section-title">🏦 Prélèvement à la source</div>
+      <div class="pas-box">${pasPresents.map(c=>`
+        <div>
+          <div class="pas-item-label">${CODES[c]?esc(CODES[c][0]):c}</div>
+          <div class="pas-item-value">${fmt(revMap[c])}</div>
+          <div class="pas-item-code">${c}${CODES[c]&&CODES[c][1]!=='Foyer'?' · '+CODES[c][1]:''}</div>
+        </div>`).join('')}
+      </div>`;
+  }
+
+  // ── GROUPES DE REVENUS ──
+  const bySection={};
+  SECTIONS_ORDER.forEach(s=>bySection[s.key]=[]);
+  const unknownCodes=[];
+
+  Object.keys(revMap).forEach(code=>{
+    if(CODES_PAS.has(code)||CODES_COT.has(code))return;
+    const val=revMap[code];
+    if(!val||val==='0')return;
+    if(CODES[code]){
+      const s=CODES[code][2];
+      if(bySection[s])bySection[s].push(code);
+      else bySection[s]=bySection[s]||[];bySection[s]&&bySection[s].push(code);
+    } else {
+      unknownCodes.push(code);
+    }
+  });
+
+  let revHtml='';
+  SECTIONS_ORDER.forEach(s=>{
+    const codes=(bySection[s.key]||[]);
+    if(!codes.length)return;
+    const colorCls=CODE_COLOR_MAP[s.key]||'';
+    const rows=codes.map(c=>{
+      const info=CODES[c];
+      const isCase=info&&info[3];
+      return `<div class="rev-row">
+        <span class="rev-code">${esc(c)}</span>
+        <span class="rev-label">${info?esc(info[0]):esc(c)}${info&&info[1]&&info[1]!=='Foyer'?` <span style="font-size:.68rem;opacity:.6">(${info[1]})</span>`:''}</span>
+        <span class="rev-val ${colorCls}">${isCase?'✓':fmt(revMap[c])}</span>
+      </div>`;
+    }).join('');
+    revHtml+=`<div class="rev-section open">
+      <div class="rev-section-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="rev-section-name">${s.label}</span>
+        <span class="rev-section-count">${codes.length} champ${codes.length>1?'s':''} ▼</span>
+      </div>
+      <div class="rev-section-rows">${rows}</div>
+    </div>`;
+  });
+  if(revHtml)document.getElementById('secRevGroup').innerHTML=`<div class="section-title">💰 Revenus & données déclarées</div><div style="display:flex;flex-direction:column;gap:10px">${revHtml}</div>`;
+
+  // ── COTISATIONS TRIMESTRIELLES ──
+  const cotPresents=Array.from(CODES_COT).filter(c=>revMap[c]);
+  const total6PS=parseInt(revMap['6PS']||0,10);
+  if(cotPresents.length||total6PS){
+    document.getElementById('secCot').innerHTML=`
+      <div class="section-title">🛡️ Cotisations sociales obligatoires</div>
+      <div class="cot-wrap">
+        ${total6PS?`<div class="cot-total-row"><span class="cot-total-label">Total déclaré (6PS)</span><span class="cot-total-val">${fmt(total6PS)}</span></div>`:''}
+        ${cotPresents.length?`<div class="cot-grid">${cotPresents.map(c=>`
+          <div class="cot-item">
+            <div class="cot-item-label">${{APS:'Trimestre 1',BPS:'Trimestre 2',CPS:'Trimestre 3',DPS:'Trimestre 4'}[c]||c}</div>
+            <div class="cot-item-val">${fmt(revMap[c])}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:4px">${c}</div>
+          </div>`).join('')}</div>`:''}
+      </div>`;
+  }
+
+  // ── TIERS DÉCLARANTS ──
+  const bulletins=d.bulletinsDetail||[];
+  if(bulletins.length){
+    const grouped={};
+    bulletins.forEach(b=>{
+      const k=b.raiSoc+'|'+(b.siret||'?');
+      if(!grouped[k])grouped[k]={raiSoc:b.raiSoc,siret:b.siret,lignes:[]};
+      grouped[k].lignes.push(b);
+    });
+    const tiersHtml=Object.values(grouped).map(g=>{
+      const type=srcType(g.raiSoc);
+      const total=g.lignes.reduce((s,l)=>s+(parseInt(l.montant,10)||0),0);
+      const rows=g.lignes.map(l=>`
+        <div class="source-row">
+          <span class="row-code">${esc(l.natureBulletin)}</span>
+          <span class="row-label">${CODES[l.natureBulletin]?esc(CODES[l.natureBulletin][0]):esc(l.natureBulletin)}
+            ${l.nomSalarieEmploiDomicile?`<br><em>${esc(l.nomSalarieEmploiDomicile)}${l.typeEmploiDom?' · '+esc(l.typeEmploiDom):''}</em>`:''}
+          </span>
+          <span class="row-amount">${fmt(l.montant)}${parseInt(l.montantPrelevSource||0,10)>0?`<span class="row-pas">PAS : ${fmt(l.montantPrelevSource)}</span>`:''}</span>
+        </div>`).join('');
+      return `<div class="source-group open">
+        <div class="source-header" onclick="this.parentElement.classList.toggle('open')">
+          <div><div class="source-name">${esc(g.raiSoc)}</div>
+            <div class="source-siret">${g.siret&&!g.siret.includes('*')?'SIRET '+esc(g.siret):'SIRET masqué'}</div>
+          </div>
+          <div class="source-right">
+            <span class="src-badge src-${type}">${srcLabel(type)}</span>
+            <span class="source-total">${fmt(total)}</span>
+            <span class="src-chevron">▼</span>
+          </div>
+        </div>
+        <div class="source-rows">${rows}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('secTiers').innerHTML=`<div class="section-title">📋 Tiers déclarants (bulletins)</div><div class="bulletins-grid">${tiersHtml}</div>`;
+  }
+
+  // ── CODES INCONNUS ──
+  if(unknownCodes.length){
+    const rows=unknownCodes.map(c=>`
+      <div class="unknown-row">
+        <span class="unk-code">${esc(c)}</span>
+        <span class="unk-label">Code non répertorié — peut être 2042C/CPRO/RICI/IFI/DRI</span>
+        <span class="unk-val">${fmt(revMap[c])}</span>
+      </div>`).join('');
+    document.getElementById('secUnknown').innerHTML=`
+      <div class="section-title">❓ Codes non répertoriés</div>
+      <div class="info-box" style="margin-bottom:10px"><span style="flex-shrink:0">ℹ️</span><span>Ces codes sont présents dans le fichier mais absents du dictionnaire intégré (2042 + 2042C + RICI). Il s'agit probablement d'annexes spécialisées (IFI, 2074, 2047, DRI…) ou de nouvelles cases à identifier.</span></div>
+      <div class="unknown-grid">${rows}</div>`;
+  }
+
+  // ── ALERTES ──
+  const alerts=[];
+  if(bulletins.some(b=>b.siret&&b.siret.includes('*')))
+    alerts.push('Certains bulletins ont un SIRET masqué — vérifier avec le contribuable (compte joint, PEA, ou confidentialité).');
+  if(total6PS>20000)
+    alerts.push(`Cotisations sociales élevées (${fmt(total6PS)}) — profil potentiellement TNS ou activité complémentaire non salariée.`);
+  if(revMap['7DB']&&!revMap['Avance_RICI_Foyer']&&!revMap['Avance_RICI_Dec1'])
+    alerts.push('Emploi à domicile déclaré (7DB) sans avance de crédit d\'impôt détectée — vérifier l\'éligibilité à l\'avance immédiate RICI.');
+  if(revMap['4BA']||revMap['4BE'])
+    alerts.push('Revenus fonciers détectés — vérifier que la déclaration 2044 a bien été jointe si régime réel (4BA).');
+  if(revMap['3VG']||revMap['3VH'])
+    alerts.push('Plus-values mobilières détectées — vérifier si la déclaration 2074 est nécessaire.');
+  if(unknownCodes.length)
+    alerts.push(`${unknownCodes.length} code(s) non répertorié(s) dans le fichier — voir section "Codes non répertoriés" ci-dessous.`);
+  if(revMap['8FV'])alerts.push('Revenus étrangers exonérés détectés (8FV) — vérifier la convention internationale applicable.');
+  if(revMap['8UU']||revMap['8TT'])alerts.push('Comptes ou contrats à l\'étranger déclarés — vérifier la déclaration 3916/3916-bis.');
+
+  const bw=document.getElementById('badgeWarn');
+  if(alerts.length){bw.style.display='';bw.textContent=alerts.length+' alerte'+(alerts.length>1?'s':'')}
+  document.getElementById('alertsTop').innerHTML=alerts.map(a=>`
+    <div class="alert-box" style="margin-bottom:8px"><span style="flex-shrink:0;font-size:1rem">⚠️</span><span>${esc(a)}</span></div>`).join('');
+
+  // ── JSON BRUT ──
+  document.getElementById('rawPre').textContent=JSON.stringify(d,null,2);
+}
+</script>
+</body>
+</html>
